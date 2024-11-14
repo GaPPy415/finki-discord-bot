@@ -150,12 +150,12 @@ export const getCourseInfoEmbed = async (information: CourseInformation) => {
       },
       {
         inline: true,
-        name: labels.code,
+        name: labels.code === '' ? labels.unknown : labels.code,
         value: information.code,
       },
       {
         inline: true,
-        name: labels.level,
+        name: labels.level === '' ? labels.unknown : labels.level,
         value: information.level.toString(),
       },
     )
@@ -199,12 +199,12 @@ export const getCourseSummaryEmbed = async (course: string) => {
       },
       {
         inline: true,
-        name: labels.code,
+        name: labels.code === '' ? labels.unknown : labels.code,
         value: info === undefined ? labels.unknown : info.code,
       },
       {
         inline: true,
-        name: labels.level,
+        name: labels.level === '' ? labels.unknown : labels.level,
         value: info === undefined ? labels.unknown : info.level.toString(),
       },
     ),

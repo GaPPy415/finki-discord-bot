@@ -42,7 +42,11 @@ import {
   specialStrings,
 } from '../translations/special.js';
 import { deleteResponse, getChannel } from '../utils/channels.js';
-import { getConfigProperty, getRoleProperty } from '../utils/config.js';
+import {
+  getConfigProperty,
+  getRoleProperty,
+  getTicketProperty,
+} from '../utils/config.js';
 import { getGuild } from '../utils/guild.js';
 import { COUNCIL_LEVEL, REGULAR_LEVEL } from '../utils/levels.js';
 import { logger } from '../utils/logger.js';
@@ -55,12 +59,15 @@ import { decidePoll, startSpecialPoll } from '../utils/polls.js';
 import { USER_ID_REGEX } from '../utils/regex.js';
 import {
   getCourseRolesBySemester,
+  getMembersByRoleIds,
   getRoleFromSet,
   getRoles,
 } from '../utils/roles.js';
+import { closeTicket, createTicket } from '../utils/tickets.js';
 import { type Poll, type PollOption, type SpecialPoll } from '@prisma/client';
 import {
   type ButtonInteraction,
+  ChannelType,
   type GuildMember,
   type GuildMemberRoleManager,
   roleMention,
@@ -711,26 +718,6 @@ export const handlePollButtonForSpecialVote = async (
   }
 
   switch (type) {
-    case 'vipRequest':
-      await handlePollButtonForVipRequestVote(poll, specialPoll);
-      break;
-
-    case 'vipAdd':
-      await handlePollButtonForVipAddVote(poll, specialPoll);
-      break;
-
-    case 'vipRemove':
-      await handlePollButtonForVipRemoveVote(poll, specialPoll, member);
-      break;
-
-    case 'councilAdd':
-      await handlePollButtonForCouncilAddVote(poll, specialPoll, member);
-      break;
-
-    case 'councilRemove':
-      await handlePollButtonForCouncilRemoveVote(poll, specialPoll, member);
-      break;
-
     case 'adminAdd':
       await handlePollButtonForAdminAddVote(poll, specialPoll, member);
       break;
@@ -743,8 +730,28 @@ export const handlePollButtonForSpecialVote = async (
       await handlePollButtonForBarVote(poll, specialPoll, member);
       break;
 
+    case 'councilAdd':
+      await handlePollButtonForCouncilAddVote(poll, specialPoll, member);
+      break;
+
+    case 'councilRemove':
+      await handlePollButtonForCouncilRemoveVote(poll, specialPoll, member);
+      break;
+
     case 'unbar':
       await handlePollButtonForUnbarVote(poll, specialPoll);
+      break;
+
+    case 'vipAdd':
+      await handlePollButtonForVipAddVote(poll, specialPoll);
+      break;
+
+    case 'vipRemove':
+      await handlePollButtonForVipRemoveVote(poll, specialPoll, member);
+      break;
+
+    case 'vipRequest':
+      await handlePollButtonForVipRequestVote(poll, specialPoll);
       break;
 
     default:
@@ -1221,4 +1228,79 @@ export const handleReminderDeleteButton = async (
   await interaction.message.edit({
     components,
   });
+};
+
+export const handleTicketCreateButton = async (
+  interaction: ButtonInteraction,
+  args: string[],
+) => {
+  const guild = await getGuild(interaction);
+  const ticketType = args[0];
+
+  if (ticketType === undefined) {
+    await interaction.reply(commandErrors.invalidTicketType);
+
+    return;
+  }
+
+  const ticketMetadata = await getTicketProperty(ticketType);
+
+  if (ticketMetadata === null) {
+    await interaction.reply(commandErrors.invalidTicketType);
+
+    return;
+  }
+
+  if (guild === null) {
+    logger.warn(
+      logErrorFunctions.buttonInteractionOutsideGuildError(
+        interaction.customId,
+      ),
+    );
+
+    return;
+  }
+
+  const ticketsChannel = getChannel('tickets');
+
+  if (
+    ticketsChannel === null ||
+    ticketsChannel?.type !== ChannelType.GuildText
+  ) {
+    await interaction.reply(commandErrors.invalidChannel);
+
+    return;
+  }
+
+  const ticketRoleMembers = await getMembersByRoleIds(
+    guild,
+    ticketMetadata.roles,
+  );
+
+  if (ticketRoleMembers.length === 0) {
+    await interaction.reply({
+      content: commandErrors.noTicketMembers,
+      ephemeral: true,
+    });
+
+    return;
+  }
+
+  await createTicket(interaction, ticketMetadata);
+};
+
+export const handleTicketCloseButton = async (
+  interaction: ButtonInteraction,
+  args: string[],
+) => {
+  const ticketId = args[0];
+
+  if (ticketId === undefined) {
+    await interaction.reply(commandErrors.invalidTicket);
+
+    return;
+  }
+
+  await closeTicket(ticketId);
+  await interaction.deferUpdate();
 };

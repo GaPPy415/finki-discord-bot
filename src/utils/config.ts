@@ -1,6 +1,7 @@
 import { getConfig, setConfig } from '../data/Config.js';
 import { configErrors } from '../translations/errors.js';
 import { type BotConfig } from '../types/BotConfig.js';
+import { type ChannelName } from '../types/ChannelName.js';
 import { type Classroom } from '../types/Classroom.js';
 import { type CourseInformation } from '../types/CourseInformation.js';
 import { type CourseParticipants } from '../types/CourseParticipants.js';
@@ -11,7 +12,6 @@ import { type RoleConfig } from '../types/RoleConfig.js';
 import { type Roles } from '../types/Roles.js';
 import { type Staff } from '../types/Staff.js';
 import { readFileSync } from 'node:fs';
-// eslint-disable-next-line n/prefer-global/process
 import { env } from 'node:process';
 
 const defaultConfig: BotConfig = {
@@ -21,6 +21,7 @@ const defaultConfig: BotConfig = {
     commands: '',
     oath: '',
     polls: '',
+    tickets: '',
     vip: '',
   },
   color: '#313183',
@@ -30,6 +31,7 @@ const defaultConfig: BotConfig = {
   experienceMultipliers: {},
   guild: '810997107376914444',
   leveling: true,
+  maxTicketInactivityDays: 10,
   reactions: {
     add: {},
     remove: {},
@@ -62,6 +64,7 @@ const defaultConfig: BotConfig = {
     parent: '1060626238760300685',
     position: 0,
   },
+  tickets: [],
   vipPause: false,
 };
 
@@ -96,6 +99,10 @@ export const setConfigProperty = async <T extends keyof BotConfig>(
   return newValue?.value;
 };
 
+export const getChannelProperty = async <T extends ChannelName>(key: T) => {
+  return config.channels[key] ?? defaultConfig.channels[key];
+};
+
 export const getRoleProperty = async <T extends Roles>(key: T) => {
   return config.roles?.[key] ?? defaultConfig.roles[key];
 };
@@ -104,6 +111,10 @@ export const getReactionsProperty = async <T extends 'add' | 'remove'>(
   key: T,
 ) => {
   return config.reactions?.[key] ?? defaultConfig.reactions[key];
+};
+
+export const getTicketProperty = async (key: string) => {
+  return config.tickets.find((ticket) => ticket.id === key) ?? null;
 };
 
 export const getExperienceMultiplier = async (channelId: string) => {

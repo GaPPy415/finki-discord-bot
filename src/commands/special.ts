@@ -25,7 +25,11 @@ import { labels } from '../translations/labels.js';
 import { logErrorFunctions } from '../translations/logs.js';
 import { formatUsers } from '../translations/users.js';
 import { deleteResponse } from '../utils/channels.js';
-import { getConfigProperty, getRoleProperty } from '../utils/config.js';
+import {
+  getChannelProperty,
+  getConfigProperty,
+  getRoleProperty,
+} from '../utils/config.js';
 import { getGuild, getMemberFromGuild } from '../utils/guild.js';
 import { logger } from '../utils/logger.js';
 import { isMemberAdmin, isMemberBarred } from '../utils/members.js';
@@ -108,6 +112,14 @@ export const data = new SlashCommandBuilder()
       .addUserOption((option) =>
         option.setName('user').setDescription('Корисник').setRequired(true),
       ),
+  )
+  .addSubcommand((command) =>
+    command
+      .setName('show')
+      .setDescription(commandDescriptions['special show'])
+      .addStringOption((option) =>
+        option.setName('id').setDescription('Анкета').setRequired(true),
+      ),
   );
 
 const handleSpecialList = async (interaction: ChatInputCommandInteraction) => {
@@ -136,11 +148,10 @@ const handleSpecialList = async (interaction: ChatInputCommandInteraction) => {
     time: await getConfigProperty('buttonIdleTime'),
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-misused-promises
   collector.on('collect', async (buttonInteraction) => {
     if (
       buttonInteraction.user.id !==
-      buttonInteraction.message.interaction?.user.id
+      buttonInteraction.message.interactionMetadata?.user.id
     ) {
       const mess = await buttonInteraction.reply({
         content: commandErrors.buttonNoPermission,
@@ -204,7 +215,6 @@ const handleSpecialList = async (interaction: ChatInputCommandInteraction) => {
     }
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-misused-promises
   collector.on('end', async () => {
     try {
       await message.edit({
@@ -343,7 +353,24 @@ const handleSpecialRemaining = async (
 };
 
 const handleSpecialBar = async (interaction: ChatInputCommandInteraction) => {
+  if (!interaction.channel?.isSendable()) {
+    await interaction.editReply({
+      content: commandErrors.unsupportedChannelType,
+    });
+
+    return;
+  }
+
   const user = interaction.options.getUser('user', true);
+  const pollsChannel = await getChannelProperty('polls');
+
+  if (interaction.channelId !== pollsChannel) {
+    await interaction.editReply({
+      content: commandErrors.invalidChannel,
+    });
+
+    return;
+  }
 
   if (user.bot) {
     await interaction.editReply(commandErrors.userBot);
@@ -383,23 +410,38 @@ const handleSpecialBar = async (interaction: ChatInputCommandInteraction) => {
 
   const embed = await getPollEmbed(poll);
   const components = getPollComponents(poll);
-  await interaction.channel?.send(
-    roleMention(await getRoleProperty('council')),
-  );
+  await interaction.channel.send(roleMention(await getRoleProperty('council')));
   await interaction.editReply({
     components,
     embeds: [embed],
   });
 
   const statsComponents = getPollStatsComponents(poll);
-  await interaction.channel?.send({
+  await interaction.channel.send({
     components: statsComponents,
     content: commandResponseFunctions.pollStats(poll.title),
   });
 };
 
 const handleSpecialUnbar = async (interaction: ChatInputCommandInteraction) => {
+  if (!interaction.channel?.isSendable()) {
+    await interaction.editReply({
+      content: commandErrors.unsupportedChannelType,
+    });
+
+    return;
+  }
+
   const user = interaction.options.getUser('user', true);
+  const pollsChannel = await getChannelProperty('polls');
+
+  if (interaction.channelId !== pollsChannel) {
+    await interaction.editReply({
+      content: commandErrors.invalidChannel,
+    });
+
+    return;
+  }
 
   if (!(await isMemberBarred(user.id))) {
     await interaction.editReply(commandErrors.userNotBarred);
@@ -425,19 +467,59 @@ const handleSpecialUnbar = async (interaction: ChatInputCommandInteraction) => {
 
   const embed = await getPollEmbed(poll);
   const components = getPollComponents(poll);
-  await interaction.channel?.send(
-    roleMention(await getRoleProperty('council')),
-  );
+  await interaction.channel.send(roleMention(await getRoleProperty('council')));
   await interaction.editReply({
     components,
     embeds: [embed],
   });
 
   const statsComponents = getPollStatsComponents(poll);
-  await interaction.channel?.send({
+  await interaction.channel.send({
     components: statsComponents,
     content: commandResponseFunctions.pollStats(poll.title),
   });
+};
+
+const handleSpecialShow = async (interaction: ChatInputCommandInteraction) => {
+  if (!interaction.channel?.isSendable()) {
+    await interaction.editReply({
+      content: commandErrors.unsupportedChannelType,
+    });
+
+    return;
+  }
+
+  const id = interaction.options.getString('id', true);
+  const specialPoll = await getSpecialPollById(id);
+  const poll = await getPollById(specialPoll?.pollId);
+
+  if (poll === null) {
+    await interaction.editReply(commandErrors.pollNotFound);
+
+    return;
+  }
+
+  const embed = await getPollEmbed(poll);
+  const components = getPollComponents(poll);
+
+  await interaction.editReply({
+    components,
+    embeds: [embed],
+    ...(specialPoll !== null && {
+      allowedMentions: {
+        parse: [],
+      },
+      content: roleMention(await getRoleProperty('council')),
+    }),
+  });
+
+  if (!poll.anonymous) {
+    const statsComponents = getPollStatsComponents(poll);
+    await interaction.channel.send({
+      components: statsComponents,
+      content: commandResponseFunctions.pollStats(poll.title),
+    });
+  }
 };
 
 const specialHandlers = {
@@ -446,6 +528,7 @@ const specialHandlers = {
   list: handleSpecialList,
   override: handleSpecialOverride,
   remaining: handleSpecialRemaining,
+  show: handleSpecialShow,
   unbar: handleSpecialUnbar,
 };
 

@@ -1,6 +1,7 @@
 import {
   type ButtonInteraction,
   type ChatInputCommandInteraction,
+  inlineCode,
   type MessageContextMenuCommandInteraction,
   type UserContextMenuCommandInteraction,
 } from 'discord.js';
@@ -23,8 +24,10 @@ export const logMessages = {
 };
 
 export const logMessageFunctions = {
+  closedTicket: (ticketThreadId: string) => `Closed ticket ${ticketThreadId}`,
+
   loggedIn: (username: string | undefined) =>
-    `Logged in as ${username ?? 'an unknown user'}`,
+    `Bot is ready! Logged in as ${username ?? 'an unknown user'}`,
 
   noRefreshNeeded: (property: string) => `No refresh needed for ${property}`,
 
@@ -74,6 +77,9 @@ export const logErrorFunctions = {
 
   buttonInteractionRoleError: (customId: string) =>
     `Received button interaction ${customId} for a role that does not exist`,
+
+  channelFetchError: (channelId: string, error: unknown) =>
+    `Failed fetching channel ${channelId}\n${error}`,
 
   chatInputInteractionDeferError: (
     interaction: ChatInputCommandInteraction,
@@ -162,6 +168,9 @@ export const logErrorFunctions = {
   responseDeleteError: (messageId: string, error: unknown) =>
     `Failed deleting message ${messageId}\n${error}`,
 
+  roleFetchError: (roleId: string, error: unknown) =>
+    `Failed fetching role ${roleId}\n${error}`,
+
   scriptExecutionError: (error: unknown) => `Failed executing script\n${error}`,
 
   unknownInteractionError: (userId: string) =>
@@ -179,3 +188,6 @@ export const logErrorFunctions = {
   ) =>
     `Failed handling user context menu interaction ${interaction.commandName}\n${error}`,
 };
+
+export const bootMessage = () =>
+  `Bot successfully started at ${inlineCode(new Date().toUTCString())}`;

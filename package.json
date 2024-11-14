@@ -4,29 +4,29 @@
     "url": "https://github.com/Delemangi/finki-discord-bot/issues"
   },
   "dependencies": {
-    "@prisma/client": "^5.14.0",
+    "@prisma/client": "^5.22.0",
     "async-lock": "^1.4.1",
-    "chrono-node": "^2.7.4",
-    "croner": "^8.0.2",
-    "discord-api-types": "^0.37.86",
-    "discord.js": "^14.15.2",
+    "chrono-node": "^2.7.7",
+    "croner": "^8.1.2",
+    "discord.js": "^14.16.3",
+    "discord-api-types": "^0.37.104",
     "dotenv": "^16.4.5",
-    "prisma": "^5.14.0",
-    "winston": "^3.13.0",
+    "prisma": "^5.22.0",
+    "winston": "^3.17.0",
     "zod": "^3.23.8"
   },
   "description": "FINKI Discord Bot",
   "devDependencies": {
-    "@swc/core": "^1.5.24",
-    "@swc/helpers": "^0.5.11",
+    "@swc/core": "^1.9.2",
+    "@swc/helpers": "^0.5.15",
     "@types/async-lock": "^1.4.2",
-    "eslint": "^8.57.0",
-    "eslint-config-canonical": "42.8.2",
-    "husky": "^9.0.11",
-    "nodemon": "^3.1.2",
-    "rimraf": "^5.0.7",
+    "eslint": "^9.14.0",
+    "eslint-config-canonical": "^44.3.4",
+    "husky": "^9.1.6",
+    "nodemon": "^3.1.7",
+    "rimraf": "^6.0.1",
     "ts-node": "^10.9.2",
-    "typescript": "^5.4.5"
+    "typescript": "^5.6.3"
   },
   "engines": {
     "node": ">=20.0.0"
@@ -43,9 +43,9 @@
     "apply": "prisma migrate deploy",
     "build": "rimraf dist && tsc",
     "dev": "nodemon",
-    "format": "eslint . --ext .ts --fix",
+    "format": "eslint . --cache --fix",
     "generate": "prisma generate",
-    "lint": "eslint . --ext .ts --cache",
+    "lint": "tsc --noEmit && eslint . --cache",
     "migrate": "prisma migrate dev --name a",
     "prepare": "husky",
     "start": "node dist/main.js"

@@ -26,10 +26,13 @@ import { commandMention } from '../utils/commands.js';
 import { getConfigProperty, getRoleProperty } from '../utils/config.js';
 import { getGuild } from '../utils/guild.js';
 import { logger } from '../utils/logger.js';
+import { isMemberAdmin } from '../utils/members.js';
 import { startPoll } from '../utils/polls.js';
 import {
   type ChatInputCommandInteraction,
   ComponentType,
+  type GuildMember,
+  InteractionContextType,
   roleMention,
   SlashCommandBuilder,
 } from 'discord.js';
@@ -197,7 +200,7 @@ export const data = new SlashCommandBuilder()
         option.setName('id').setDescription('Анкета').setRequired(true),
       ),
   )
-  .setDMPermission(false);
+  .setContexts(InteractionContextType.Guild);
 
 const handlePollCreate = async (interaction: ChatInputCommandInteraction) => {
   const title = interaction.options.getString('title', true);
@@ -333,8 +336,22 @@ const handlePollStats = async (interaction: ChatInputCommandInteraction) => {
 };
 
 const handlePollShow = async (interaction: ChatInputCommandInteraction) => {
+  if (!interaction.channel?.isSendable()) {
+    await interaction.editReply({
+      content: commandErrors.unsupportedChannelType,
+    });
+
+    return;
+  }
+
   const id = interaction.options.getString('id', true).trim();
-  const poll = await getPollById(id);
+  let poll = await getPollById(id);
+
+  if (poll === null) {
+    const special = await getSpecialPollByPollId(id);
+
+    poll = await getPollById(special?.pollId);
+  }
 
   if (poll === null) {
     await interaction.editReply(commandErrors.pollNotFound);
@@ -359,7 +376,7 @@ const handlePollShow = async (interaction: ChatInputCommandInteraction) => {
 
   if (!poll.anonymous) {
     const statsComponents = getPollStatsComponents(poll);
-    await interaction.channel?.send({
+    await interaction.channel.send({
       components: statsComponents,
       content: commandResponseFunctions.pollStats(poll.title),
     });
@@ -381,7 +398,11 @@ const handlePollAdd = async (interaction: ChatInputCommandInteraction) => {
     return;
   }
 
-  if (!poll.open && poll.userId !== interaction.user.id) {
+  if (
+    !poll.open &&
+    poll.userId !== interaction.user.id &&
+    !(await isMemberAdmin(interaction.member as GuildMember))
+  ) {
     await interaction.editReply(commandErrors.pollNoPermission);
 
     return;
@@ -437,7 +458,10 @@ const handlePollRemove = async (interaction: ChatInputCommandInteraction) => {
     return;
   }
 
-  if (poll.userId !== interaction.user.id) {
+  if (
+    poll.userId !== interaction.user.id &&
+    !(await isMemberAdmin(interaction.member as GuildMember))
+  ) {
     await interaction.editReply(commandErrors.pollNoPermission);
 
     return;
@@ -487,7 +511,10 @@ const handlePollOpen = async (interaction: ChatInputCommandInteraction) => {
     return;
   }
 
-  if (poll.userId !== interaction.user.id) {
+  if (
+    poll.userId !== interaction.user.id &&
+    !(await isMemberAdmin(interaction.member as GuildMember))
+  ) {
     await interaction.editReply(commandErrors.pollNoPermission);
 
     return;
@@ -515,7 +542,10 @@ const handlePollClose = async (interaction: ChatInputCommandInteraction) => {
     return;
   }
 
-  if (poll.userId !== interaction.user.id) {
+  if (
+    poll.userId !== interaction.user.id &&
+    !(await isMemberAdmin(interaction.member as GuildMember))
+  ) {
     await interaction.editReply(commandErrors.pollNoPermission);
 
     return;
@@ -569,11 +599,10 @@ const handlePollList = async (interaction: ChatInputCommandInteraction) => {
     time: await getConfigProperty('buttonIdleTime'),
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-misused-promises
   collector.on('collect', async (buttonInteraction) => {
     if (
       buttonInteraction.user.id !==
-      buttonInteraction.message.interaction?.user.id
+      buttonInteraction.message.interactionMetadata?.user.id
     ) {
       const mess = await buttonInteraction.reply({
         content: commandErrors.buttonNoPermission,
@@ -633,7 +662,6 @@ const handlePollList = async (interaction: ChatInputCommandInteraction) => {
     }
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-misused-promises
   collector.on('end', async () => {
     try {
       await message.edit({

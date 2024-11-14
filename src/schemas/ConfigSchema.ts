@@ -9,6 +9,7 @@ export const ConfigSchema = z
         commands: z.string().nullable(),
         oath: z.string().nullable(),
         polls: z.string().nullable(),
+        tickets: z.string().nullable(),
         vip: z.string().nullable(),
       })
       .strict(),
@@ -19,6 +20,7 @@ export const ConfigSchema = z
     experienceMultipliers: z.record(z.number()),
     guild: z.string(),
     leveling: z.boolean(),
+    maxTicketInactivityDays: z.number(),
     reactions: z
       .object({
         add: z.record(z.string()),
@@ -59,6 +61,15 @@ export const ConfigSchema = z
         position: z.number(),
       })
       .strict(),
+    tickets: z.array(
+      z
+        .object({
+          id: z.string(),
+          name: z.string(),
+          roles: z.array(z.string()),
+        })
+        .strict(),
+    ),
     vipPause: z.boolean(),
   })
   .strict();

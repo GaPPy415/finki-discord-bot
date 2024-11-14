@@ -8,6 +8,7 @@ import {
 } from '../translations/commands.js';
 import { parseDate } from 'chrono-node';
 import {
+  channelMention,
   type ChatInputCommandInteraction,
   SlashCommandBuilder,
   time,
@@ -57,7 +58,7 @@ const handleReminderCreate = async (
     return;
   }
 
-  await createReminder({
+  const reminder = await createReminder({
     channelId: interaction.channelId,
     description,
     privateMessage:
@@ -65,6 +66,12 @@ const handleReminderCreate = async (
     timestamp: date,
     userId: interaction.user.id,
   });
+
+  if (reminder === null) {
+    await interaction.editReply(commandErrors.reminderCreateError);
+
+    return;
+  }
 
   await interaction.editReply({
     allowedMentions: {
@@ -93,9 +100,10 @@ const handleReminderList = async (interaction: ChatInputCommandInteraction) => {
   }
 
   const remindersList = reminders
-    .map(
-      (reminder, index) =>
-        `${index}. ${time(reminder.timestamp, 'F')} - ${reminder.description}`,
+    .map((reminder, index) =>
+      reminder.channelId === null
+        ? `${index}. ${time(reminder.timestamp, 'F')} - ${reminder.description}`
+        : `${index}. ${time(reminder.timestamp, 'F')} - ${reminder.description} [${channelMention(reminder.channelId)}]`,
     )
     .join('\n');
 

@@ -17,6 +17,7 @@ This discord bot contains many features personalized for the above-mentioned Dis
 - Automation of the entire management of the server, allowing members to vote in new admins and such
 - Experience & leveling
 - Moderation
+- Ticketing system
 - Miscellaneous functionalities, such as reminders, sending embeds for rules, role assignments
 
 ## Installation
@@ -86,7 +87,6 @@ The bot logs `info` and above messages in the console, and logs `debug` and abov
 Here is a list of features that are planned:
 
 - Moving away from configuration files as much as possible, and keeping everything in the database
-- Ticketing system
 - Web application for configuring the bot
 - Testing
 - More moderation and lockdown functionalities

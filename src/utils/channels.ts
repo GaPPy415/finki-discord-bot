@@ -37,13 +37,18 @@ export const initializeChannels = async () => {
   }
 
   for (const [channelName, channelId] of Object.entries(channelIds)) {
-    if (channelId === undefined) {
+    if (channelId === undefined || channelId === '') {
       continue;
     }
 
-    channels[channelName as ChannelName] = client.channels.cache.get(
-      channelId,
-    ) as GuildTextBasedChannel;
+    try {
+      const channel = await client.channels.fetch(channelId);
+      channels[channelName as ChannelName] = (channel ?? undefined) as
+        | GuildTextBasedChannel
+        | undefined;
+    } catch (error) {
+      logger.error(logErrorFunctions.channelFetchError(channelId, error));
+    }
   }
 
   logger.info(logMessages.channelsInitialized);
@@ -168,7 +173,7 @@ export const recreateRegularsTemporaryChannel = async () => {
   );
 };
 
-export const scheduleVipTemporaryChannel = async () => {
+export const resetTemporaryVipChannel = async () => {
   const { cron } = await getConfigProperty('temporaryVIPChannel');
 
   Cron(cron, recreateVipTemporaryChannel);
@@ -178,7 +183,7 @@ export const scheduleVipTemporaryChannel = async () => {
   );
 };
 
-export const scheduleRegularsTemporaryChannel = async () => {
+export const resetTemporaryRegularsChannel = async () => {
   const { cron } = await getConfigProperty('temporaryRegularsChannel');
 
   Cron(cron, recreateRegularsTemporaryChannel);

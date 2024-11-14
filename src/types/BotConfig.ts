@@ -1,5 +1,6 @@
 import { type ChannelName } from './ChannelName.js';
 import { type Roles } from './Roles.js';
+import { type TicketType } from './TicketType.js';
 import { type ColorResolvable } from 'discord.js';
 
 export type BotConfig = {
@@ -12,6 +13,7 @@ export type BotConfig = {
   experienceMultipliers: Record<string, number>;
   guild: string;
   leveling: boolean;
+  maxTicketInactivityDays: number;
   reactions: {
     add: Record<string, string>;
     remove: Record<string, string>;
@@ -30,5 +32,6 @@ export type BotConfig = {
     parent: string;
     position: number;
   };
+  tickets: TicketType[];
   vipPause: boolean;
 };

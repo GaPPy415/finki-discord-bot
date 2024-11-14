@@ -1,4 +1,4 @@
-import { logMessages } from '../translations/logs.js';
+import { logErrorFunctions, logMessages } from '../translations/logs.js';
 import { type Roles } from '../types/Roles.js';
 import { type RoleSets } from '../types/RoleSets.js';
 import { client } from './client.js';
@@ -25,11 +25,16 @@ export const initializeRoles = async () => {
   }
 
   for (const [roleName, roleId] of Object.entries(roleIds)) {
-    if (roleId === undefined) {
+    if (roleId === undefined || roleId === '') {
       continue;
     }
 
-    roles[roleName as Roles] = guild.roles.cache.get(roleId);
+    try {
+      const role = await guild.roles.fetch(roleId);
+      roles[roleName as Roles] = role ?? undefined;
+    } catch (error) {
+      logger.error(logErrorFunctions.roleFetchError(roleId, error));
+    }
   }
 
   logger.info(logMessages.rolesInitialized);
@@ -46,7 +51,7 @@ export const refreshRoles = (guild: Guild, type: RoleSets) => {
       guild.roles.cache.find((ro) => ro.name === roleName),
     );
 
-    roleSets[type] = roleSet.filter((role) => role !== undefined) as Role[];
+    roleSets[type] = roleSet.filter((role) => role !== undefined);
   }
 };
 
